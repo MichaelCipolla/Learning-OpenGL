@@ -1,4 +1,3 @@
 ﻿  Render.cpp
-  Shaders.cpp
-  Generating Code...
+C:\Users\Michael\Documents\Learning-OpenGL\OpenGL-Learning1-Exercises\OpenGL-Learning1-Exercises\Render.cpp(152,19): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
   OpenGL-Learning1-Exercises.vcxproj -> C:\Users\Michael\Documents\Learning-OpenGL\OpenGL-Learning1-Exercises\x64\Debug\OpenGL-Learning1-Exercises.exe

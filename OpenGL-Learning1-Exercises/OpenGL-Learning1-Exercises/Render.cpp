@@ -4,24 +4,47 @@
 
 #include "Shaders.h"
 
-//shaders (RGBA)
-const char* vertexShader = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"void main() {\n"
-"	gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-"}\0";
-
-const char* fragmentShaderOrange = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"void main() {\n"
-"	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-"}\0";
-
-const char* fragmentShaderYellow = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"void main() {\n"
-"	FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
-"}\0";
+////shaders (RGBA)
+//const char* vertexShader = "#version 330 core\n"
+//	"layout (location = 0) in vec3 aPos;\n"
+//	"void main() {\n"
+//	"	gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+//	"}\0";
+//
+//const char* fragmentShaderOrange = "#version 330 core\n"
+//	"out vec4 FragColor;\n"
+//	"void main() {\n"
+//	"	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+//	"}\0";
+//
+//const char* fragmentShaderYellow = "#version 330 core\n"
+//	"out vec4 FragColor;\n"
+//	"void main() {\n"
+//	"	FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
+//	"}\0";
+//
+//const char* advancedVertexShader = "#version 330 core\n"
+//	"layout(location = 0) in vec3 aPos; // position has attribute position 0\n"
+//	"layout(location = 1) in vec3 aColor; // color has attribute position 1\n"
+//	"out vec3 ourColor; // specify a color output to the fragment shader\n"
+//	"void main() {\n"
+//	"	gl_Position = vec4(aPos, 1.0); // we give a vec3 to vec4’s constructor\n"
+//	"	ourColor = aColor; // output variable to dark-red\n"
+//	"}\0";
+//
+//const char* advancedFragmentShader = "#version 330 core\n"
+//	"out vec4 FragColor;\n"
+//	"in vec3 ourColor; // input variable from vs (same name and type)\n"
+//	"void main() {\n"
+//	"	FragColor = vec4(ourColor, 1.0);\n"
+//	"}\0";
+//
+//const char* uniformFragmentShader = "#version 330 core\n"
+//	"out vec4 FragColor;\n"
+//	"uniform vec4 ourColor;\n"
+//	"void main() {\n"
+//	"	FragColor = vec4(ourColor, 1.0);\n"
+//	"}\0";
 
 bool isWireFrame = false;
 
@@ -64,20 +87,28 @@ int main() {
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
+	// openGL functions can now be used beyond this point:
 	glViewport(0, 0, 800, 600);
 
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+	
+	int nrAttributes;
+	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
+	std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
+
 
 	ShaderLoader* shaderLoader = new ShaderLoader();
-	unsigned int shaderProgramOrange = shaderLoader->createShaderProgram(vertexShader, fragmentShaderOrange);
-	unsigned int shaderProgramYellow = shaderLoader->createShaderProgram(vertexShader, fragmentShaderYellow);
+	unsigned int shaderProgram = shaderLoader->createShaderProgram("Shaders/Vertex/learningVertexShader.v", "Shaders/Fragment/learningFragmentShader.f");
 
 	float vertices[] = {
-		 -1.0f, 0.0f, 0.0f,
-		 -0.5f, 1.0f, 0.0f,
-		 0.0f, 0.0f, 0.0f,
-		 1.0f, 0.0f, 0.0f,
-		 0.5f, 1.0f, 0.0f,
+		 0.0f, 0.5f, 0.0f, // pos...
+		 1.0f, 0.0f, 0.0f, // color...
+
+		 -0.5f, -0.5f, 0.0f,
+		 0.0f, 1.0f, 0.0f,
+
+		 0.5f, -0.5f, 0.0f,
+		 0.0f, 0.0f, 1.0f,
 	};
 
 	int vertexOrdering[] = {
@@ -95,8 +126,10 @@ int main() {
 	glBindBuffer(GL_ARRAY_BUFFER, VBO1);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); // vertexAttribute pointers can only be initialized after a VBO is defined
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0); // vertexAttribute pointers can only be initialized after a VBO is defined
 	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 
 	int vertexOrdering1[] = {
 		0, 1, 2,
@@ -107,26 +140,6 @@ int main() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO1);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(vertexOrdering1), vertexOrdering1, GL_STATIC_DRAW);
 
-	unsigned int VAO2; // This stores vertexAttribute calls 
-	glGenVertexArrays(1, &VAO2);
-	glBindVertexArray(VAO2);
-
-	unsigned int VBO2; // This stores vertex information
-	glGenBuffers(1, &VBO2);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	int vertexOrdering2[] = {
-		2, 3, 4,
-	};
-
-	unsigned int EBO2;
-	glGenBuffers(1, &EBO2);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO2);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(vertexOrdering2), vertexOrdering2, GL_STATIC_DRAW);
 
 	while (!glfwWindowShouldClose(window)) {
 		// input
@@ -135,21 +148,16 @@ int main() {
 		// rendering commands
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
+		
+		float timeValue = glfwGetTime();
+		float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
 
-		// Non EBO method:
-		/*glBindVertexArray(VAO1);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-
-		glBindVertexArray(VAO2);
-		glDrawArrays(GL_TRIANGLES, 3, 3);*/
+		shaderLoader->use();
+		shaderLoader->setFloat("offset", greenValue);
 
 		//EBO method:
-		glUseProgram(shaderProgramOrange);
+		//glUseProgram(shaderProgram);
 		glBindVertexArray(VAO1);
-		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
-
-		glUseProgram(shaderProgramYellow);
-		glBindVertexArray(VAO2);
 		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
 
 		glBindVertexArray(0);
