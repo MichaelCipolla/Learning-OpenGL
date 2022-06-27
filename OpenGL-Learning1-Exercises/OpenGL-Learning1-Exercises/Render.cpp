@@ -1,6 +1,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "Shaders.h"
 #include "stb_image.h"
@@ -47,6 +50,7 @@
 //	"	FragColor = vec4(ourColor, 1.0);\n"
 //	"}\0";
 
+float opacityAmount = 0.0f;
 bool isWireFrame = false;
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
@@ -64,6 +68,22 @@ void processInput(GLFWwindow* window) {
 		}
 		else {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+	}
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+		if (opacityAmount < 1.0f) {
+			opacityAmount += 0.01f;
+		}
+		else {
+			opacityAmount = 1.0f;
+		}
+	}
+	else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+		if (opacityAmount > 0.0f) {
+			opacityAmount -= 0.01f;
+		}
+		else {
+			opacityAmount = 0.0f;
 		}
 	}
 }
@@ -102,21 +122,25 @@ int main() {
 	unsigned int shaderProgram = shaderLoader->createShaderProgram("Shaders/Vertex/learningVertexShader.v", "Shaders/Fragment/learningFragmentShader.f");
 
 	float vertices[] = {
+		//TOP RIGHT
 		 0.5f, 0.5f, 0.0f, // pos...
 		 1.0f, 0.0f, 0.0f, // color...
 		 1.0f, 1.0f, //texture coords
 
+		 //TOP LEFT
 		 0.5f, -0.5f, 0.0f,
 		 0.0f, 1.0f, 0.0f,
-		 1.0, 0.0f,
+		 1.0f, 0.0f,
 
+		 //BOTTOM LEFT
 		 -0.5f, -0.5f, 0.0f,
 		 0.0f, 0.0f, 1.0f,
 		 0.0f, 0.0f,
 
-		  -0.5f, 0.5f, 0.0f,
+		 //BOTTOM RIGHT
+		 -0.5f, 0.5f, 0.0f,
 		 1.0f, 1.0f, 0.0f,
-		 0.0f, 1.0f,
+		 0.0, 1.0f,
 
 	};
 
@@ -155,8 +179,8 @@ int main() {
 
 	glBindTexture(GL_TEXTURE_2D, texture1);
 	// set the texture wrapping/filtering options (on currently bound texture)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	// load and generate the texture
@@ -200,6 +224,19 @@ int main() {
 	shaderLoader->setInt("texture1", 0); //set which GL_TEXTUREX this texture is associated with
 	shaderLoader->setInt("texture2", 1);
 
+	/*glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
+	glm::mat4 trans = glm::mat4(1.0f);
+	trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
+	vec = trans * vec;
+	std::cout << vec.x << vec.y << vec.z << std::endl;*/
+
+	/*glm::mat4 trans = glm::mat4(1.0f);
+	trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
+	trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f));
+
+	unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
+	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));*/
+
 	while (!glfwWindowShouldClose(window)) {
 		// input
 		processInput(window);
@@ -213,6 +250,7 @@ int main() {
 
 		shaderLoader->use();
 		shaderLoader->setFloat("offset", greenValue);*/
+		shaderLoader->setFloat("opacity", opacityAmount);
 		
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture1);
@@ -223,6 +261,25 @@ int main() {
 		glBindVertexArray(VAO1);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
+
+		glm::mat4 trans = glm::mat4(1.0f);
+		trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+		trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+		
+
+		unsigned int transformLoc = glGetUniformLocation(shaderProgram, "transform");
+		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+
+		glBindVertexArray(VAO1);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+		
+		trans = glm::mat4(1.0f);
+		trans = glm::scale(trans, abs(sin((float)glfwGetTime()) * glm::vec3(1.0f, 1.0f, 1.0f)));
+		trans = glm::translate(trans, glm::vec3(-0.5f, 0.5f, 0.0f));
+
+		transformLoc = glGetUniformLocation(shaderProgram, "transform");
+		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
 
 		// check and call events and swap the buffers
 		glfwSwapBuffers(window);
