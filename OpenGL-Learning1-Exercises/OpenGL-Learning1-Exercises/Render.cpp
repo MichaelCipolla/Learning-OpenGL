@@ -8,53 +8,45 @@
 #include "Shaders.h"
 #include "stb_image.h"
 #include <glm/gtc/type_ptr.hpp>
-////shaders (RGBA)
-//const char* vertexShader = "#version 330 core\n"
-//	"layout (location = 0) in vec3 aPos;\n"
-//	"void main() {\n"
-//	"	gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-//	"}\0";
-//
-//const char* fragmentShaderOrange = "#version 330 core\n"
-//	"out vec4 FragColor;\n"
-//	"void main() {\n"
-//	"	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-//	"}\0";
-//
-//const char* fragmentShaderYellow = "#version 330 core\n"
-//	"out vec4 FragColor;\n"
-//	"void main() {\n"
-//	"	FragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n"
-//	"}\0";
-//
-//const char* advancedVertexShader = "#version 330 core\n"
-//	"layout(location = 0) in vec3 aPos; // position has attribute position 0\n"
-//	"layout(location = 1) in vec3 aColor; // color has attribute position 1\n"
-//	"out vec3 ourColor; // specify a color output to the fragment shader\n"
-//	"void main() {\n"
-//	"	gl_Position = vec4(aPos, 1.0); // we give a vec3 to vec4’s constructor\n"
-//	"	ourColor = aColor; // output variable to dark-red\n"
-//	"}\0";
-//
-//const char* advancedFragmentShader = "#version 330 core\n"
-//	"out vec4 FragColor;\n"
-//	"in vec3 ourColor; // input variable from vs (same name and type)\n"
-//	"void main() {\n"
-//	"	FragColor = vec4(ourColor, 1.0);\n"
-//	"}\0";
-//
-//const char* uniformFragmentShader = "#version 330 core\n"
-//	"out vec4 FragColor;\n"
-//	"uniform vec4 ourColor;\n"
-//	"void main() {\n"
-//	"	FragColor = vec4(ourColor, 1.0);\n"
-//	"}\0";
+#include "Camera.h"
 
 bool isWireFrame = false;
+
+float deltaTime = 0.0f; // Time between current frame and last frame
+float lastFrame = 0.0f; // Time of last frame
+
+float lastXPos = 0.0f;
+float lastYPos = 0.0f;
+bool firstMouse = true;
+
+Camera* camera;
+
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
+
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+	camera->ProcessMouseScroll(yoffset);
+}
+
+void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+	if (firstMouse) {
+		lastXPos = xpos;
+		lastYPos = ypos;
+		firstMouse = false;
+	}
+
+	float xOffset = lastXPos - xpos;
+	float yOffset = lastYPos - ypos;
+
+	lastXPos = xpos;
+	lastYPos = ypos;
+
+	camera->ProcessMouseMovement(xOffset, yOffset);
+}
+
+
 
 void processInput(GLFWwindow* window) {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) { // this function returns GLFW_RELEASE if the key is not pressed
@@ -68,6 +60,18 @@ void processInput(GLFWwindow* window) {
 		else {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		}
+	}
+	if (glfwGetKey(window, GLFW_KEY_W)) {
+		camera->ProcessKeyboard(Camera_Movement::FORWARD, deltaTime);
+	}
+	if (glfwGetKey(window, GLFW_KEY_S)) {
+		camera->ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime);
+	}
+	if (glfwGetKey(window, GLFW_KEY_A)) {
+		camera->ProcessKeyboard(Camera_Movement::LEFT, deltaTime);
+	}
+	if (glfwGetKey(window, GLFW_KEY_D)) {
+		camera->ProcessKeyboard(Camera_Movement::RIGHT, deltaTime);
 	}
 }
 
@@ -100,33 +104,8 @@ int main() {
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
 	std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-
 	ShaderLoader* shaderLoader = new ShaderLoader();
 	unsigned int shaderProgram = shaderLoader->createShaderProgram("Shaders/Vertex/learningVertexShader.v", "Shaders/Fragment/learningFragmentShader.f");
-
-	//float vertices[] = {
-	//	 0.5f, 0.5f, 0.0f, // pos...
-	//	 1.0f, 0.0f, 0.0f, // color...
-	//	 1.0f, 1.0f, //texture coords
-
-	//	 0.5f, -0.5f, 0.0f,
-	//	 0.0f, 1.0f, 0.0f,
-	//	 1.0, 0.0f,
-
-	//	 -0.5f, -0.5f, 0.0f,
-	//	 0.0f, 0.0f, 1.0f,
-	//	 0.0f, 0.0f,
-
-	//	  -0.5f, 0.5f, 0.0f,
-	//	 1.0f, 1.0f, 0.0f,
-	//	 0.0f, 1.0f,
-
-	//};
-
-	/*int vertexOrdering1[] = {
-		0, 1, 2,
-		0, 2, 3,
-	};*/
 
 	float vertices[]{
 		-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
@@ -194,11 +173,6 @@ int main() {
 	glBindBuffer(GL_ARRAY_BUFFER, VBO1);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	/*unsigned int EBO1;
-	glGenBuffers(1, &EBO1);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO1);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(vertexOrdering1), vertexOrdering1, GL_STATIC_DRAW);*/
-
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0); // vertexAttribute pointers can only be initialized after a VBO is defined
 	glEnableVertexAttribArray(0);
 
@@ -250,8 +224,6 @@ int main() {
 		std::cout << "Failed to load texture" << std::endl;
 	}
 
-	/*glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-	glGenerateMipmap(GL_TEXTURE_2D);*/
 	stbi_image_free(data);
 
 
@@ -262,32 +234,34 @@ int main() {
 
 	glEnable(GL_DEPTH_TEST);
 
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+	camera = new Camera();
+
+	glfwSetCursorPosCallback(window, mouseCallback);
+	glfwSetScrollCallback(window, scrollCallback);
 
 	while (!glfwWindowShouldClose(window)) {
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
 		// input
 		processInput(window);
 
 		// rendering commands
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		/*
-		float timeValue = glfwGetTime();
-		float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
 
-		shaderLoader->use();
-		shaderLoader->setFloat("offset", greenValue);*/
+		const float radius = 10.0f;
+		float camX = sin(glfwGetTime()) * radius;
+		float camZ = cos(glfwGetTime()) * radius;
+		glm::mat4 view;
 
-/*		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f))*/;
-
-		glm::mat4 view = glm::mat4(1.0f);
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+		view = camera->GetViewMatrix();
 
 		glm::mat4 projection;
-		projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-
-		/*int modelLoc = glGetUniformLocation(shaderProgram, "model");
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));*/
+		projection = glm::perspective(glm::radians(camera->Zoom), 800.0f / 600.0f, 0.1f, 100.0f);
 
 		int viewLoc = glGetUniformLocation(shaderProgram, "view");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -300,9 +274,8 @@ int main() {
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, texture2);
 		//EBO method:
-		//glUseProgram(shaderProgram);
 		glBindVertexArray(VAO1);
-		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
 		for (unsigned int i = 0; i < 10; i++) {
 			glm::mat4 model = glm::mat4(1.0f);
 			
