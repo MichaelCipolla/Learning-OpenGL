@@ -32,6 +32,9 @@ public:
     glm::vec3 Up;
     glm::vec3 Right;
     glm::vec3 WorldUp;
+
+    glm::vec3 forwardMovement;
+
     // euler Angles
     float Yaw;
     float Pitch;
@@ -69,10 +72,11 @@ public:
     void ProcessKeyboard(Camera_Movement direction, float deltaTime)
     {
         float velocity = MovementSpeed * deltaTime;
+
         if (direction == FORWARD)
-            Position += Front * velocity;
+            Position += forwardMovement * velocity;
         if (direction == BACKWARD)
-            Position -= Front * velocity;
+            Position -= forwardMovement * velocity;
         if (direction == LEFT)
             Position -= Right * velocity;
         if (direction == RIGHT)
@@ -121,6 +125,12 @@ private:
         front.y = sin(glm::radians(Pitch));
         front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
         Front = glm::normalize(front);
+
+        forwardMovement.x = -cos(glm::radians(Yaw));
+        forwardMovement.y = 0.0f;
+        forwardMovement.z = sin(glm::radians(Yaw));
+        forwardMovement = glm::normalize(forwardMovement);
+
         // also re-calculate the Right and Up vector
         Right = glm::normalize(glm::cross(Front, WorldUp));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
         Up = glm::normalize(glm::cross(Right, Front));
