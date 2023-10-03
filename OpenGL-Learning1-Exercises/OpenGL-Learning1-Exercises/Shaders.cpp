@@ -113,3 +113,6 @@ void ShaderLoader::setInt(const std::string & name, int value) const {
 void ShaderLoader::setFloat(const std::string& name, float value) const {
 	glUniform1f(glGetUniformLocation(currentProgram, name.c_str()), value);
 }
+void ShaderLoader::setVec3(const std::string& name, float value1, float value2, float value3) {
+	glUniform3f(glGetUniformLocation(currentProgram, name.c_str()), value1, value2, value3);
+}
